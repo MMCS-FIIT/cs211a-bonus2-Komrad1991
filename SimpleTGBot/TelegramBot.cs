@@ -24,8 +24,8 @@ public class TelegramBot
 {
     // Токен TG-бота. Можно получить у @BotFather
     private const string BotToken = "7109270091:AAEa5Yf-6WKkuwBk8nMEuxT6QcKRf9zNwSA";
-    public List<user> all_users;
     public user curr_user;
+    public List<user> all_users;
     /// <summary>
     /// Инициализирует и обеспечивает работу бота до нажатия клавиши Esc
     /// </summary>
@@ -57,18 +57,6 @@ public class TelegramBot
         // Инициализируем наш клиент, передавая ему токен.
         var botClient = new TelegramBotClient(BotToken);
 
-        all_users = new List<user>();
-        using (var fs = new FileStream("user_data", FileMode.OpenOrCreate))
-        using (var sr = new StreamReader(fs))
-        {
-            while (!sr.EndOfStream)
-            {
-                var line = sr.ReadLine();
-                user user = JsonSerializer.Deserialize<user>(line);
-                all_users.Add(user);
-            }
-        }
-
         // Служебные вещи для организации правильной работы с потоками
         using CancellationTokenSource cts = new CancellationTokenSource();
         
@@ -87,6 +75,15 @@ public class TelegramBot
             cancellationToken: cts.Token
         );
 
+        using (var sr = new StreamReader("user_data.json"))
+        {
+            var obj = sr.ReadToEnd();
+            if (obj.Length == 0)
+            {
+                all_users = new List<user>();
+            }
+            else all_users = JsonSerializer.Deserialize<user[]>(obj).ToList();
+        }
         // Проверяем что токен верный и получаем информацию о боте
         var me = await botClient.GetMeAsync(cancellationToken: cts.Token);
         Console.WriteLine($"Бот @{me.Username} запущен.\nДля остановки нажмите клавишу Esc...");
@@ -125,9 +122,18 @@ public class TelegramBot
         // Получаем ID чата, в которое пришло сообщение. Полезно, чтобы отличать пользователей друг от друга.
         var chatId = message.Chat.Id;
         user curr_user = new user(chatId, true, true);
-        if (all_users.All(x => x.id != chatId))
+        if (all_users.Any(user => user.id == chatId))
+        {
+            curr_user = all_users.Find(x => x.id == chatId);
+        }
+        else
         {
             all_users.Add(curr_user);
+            using (var sr = new StreamWriter("user_data.json"))
+            {
+                sr.Write(JsonSerializer.Serialize<user[]>(all_users.ToArray()));
+            }
+
         }
         // Печатаем на консоль факт получения сообщения
         Console.WriteLine($"Получено сообщение в чате {chatId}: '{messageText}'");
@@ -188,7 +194,7 @@ public class TelegramBot
             }
             foreach (var item in planets)
             {
-                if(curr_user.bugs &&(item.Owner()?.Name == "Terminids"))
+                if((curr_user.bugs &&(item.Owner()?.Name == "Terminids"))|| (curr_user.automatons && (item.Owner()?.Name == "Automaton"))||item.Owner()?.Name == "Humans")
                 {
                     if (item.Environments.Length == 0)
                         await botClient.SendTextMessageAsync(chatId: chatId, text: $"""
@@ -247,6 +253,11 @@ public class TelegramBot
             You  will no longer receive bugs planet info
             """, replyMarkup: replyKeyboardMarkup, cancellationToken: cancellationToken);
                 curr_user.bugs = false;
+                all_users.Find(user => user.id == curr_user.id).bugs = false;
+                using (var sr = new StreamWriter("user_data.json"))
+                {
+                    sr.Write(JsonSerializer.Serialize<user[]>(all_users.ToArray()));
+                }
             }
             else
             {
@@ -254,6 +265,38 @@ public class TelegramBot
             Now, you will receive bugs planet info
             """, replyMarkup: replyKeyboardMarkup, cancellationToken: cancellationToken);
                 curr_user.bugs = true;
+                all_users.Find(user => user.id == curr_user.id).bugs = true;
+                using (var sr = new StreamWriter("user_data.json"))
+                {
+                    sr.Write(JsonSerializer.Serialize<user[]>(all_users.ToArray()));
+                }
+            }
+        }
+        if (message.Text == "Automatons")
+        {
+            if (curr_user.automatons == true)
+            {
+                await botClient.SendTextMessageAsync(chatId: chatId, text: $"""
+            You  will no longer receive Automatons planet info
+            """, replyMarkup: replyKeyboardMarkup, cancellationToken: cancellationToken);
+                curr_user.automatons = false;
+                all_users.Find(user => user.id == curr_user.id).automatons = false;
+                using (var sr = new StreamWriter("user_data.json"))
+                {
+                    sr.Write(JsonSerializer.Serialize<user[]>(all_users.ToArray()));
+                }
+            }
+            else
+            {
+                await botClient.SendTextMessageAsync(chatId: chatId, text: $"""
+            Now, you will receive Automatons planet info
+            """, replyMarkup: replyKeyboardMarkup, cancellationToken: cancellationToken);
+                curr_user.automatons = true;
+                all_users.Find(user => user.id == curr_user.id).automatons = true;
+                using (var sr = new StreamWriter("user_data.json"))
+                {
+                    sr.Write(JsonSerializer.Serialize<user[]>(all_users.ToArray()));
+                }
             }
         }
         //await botClient.SendTextMessageAsync(chatId: chatId, text: $"""
