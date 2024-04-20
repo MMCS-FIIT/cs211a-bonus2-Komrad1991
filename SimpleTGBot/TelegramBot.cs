@@ -153,7 +153,7 @@ public class TelegramBot
                 Missions lost: {hdClient.GetWarStats().GalaxyStats.MissionsLost}
                 Bugs killed: {hdClient.GetWarStats().GalaxyStats.BugKills}
                 Automatons killed: {hdClient.GetWarStats().GalaxyStats.AutomatonKills}
-                Allies killed killed: {hdClient.GetWarStats().GalaxyStats.Friendlies}
+                Allies killed: {hdClient.GetWarStats().GalaxyStats.Friendlies}
                 ??Illuminaty?? killed: {hdClient.GetWarStats().GalaxyStats.IlluminateKills}
                 """, cancellationToken: cancellationToken);
         }
@@ -251,7 +251,7 @@ public class TelegramBot
             {
                 await botClient.SendTextMessageAsync(chatId: chatId, text: $"""
             You  will no longer receive bugs planet info
-            """, replyMarkup: replyKeyboardMarkup, cancellationToken: cancellationToken);
+            """, replyMarkup: settingsMarkup, cancellationToken: cancellationToken);
                 curr_user.bugs = false;
                 all_users.Find(user => user.id == curr_user.id).bugs = false;
                 using (var sr = new StreamWriter("user_data.json"))
@@ -263,7 +263,7 @@ public class TelegramBot
             {
                 await botClient.SendTextMessageAsync(chatId: chatId, text: $"""
             Now, you will receive bugs planet info
-            """, replyMarkup: replyKeyboardMarkup, cancellationToken: cancellationToken);
+            """, replyMarkup: settingsMarkup, cancellationToken: cancellationToken);
                 curr_user.bugs = true;
                 all_users.Find(user => user.id == curr_user.id).bugs = true;
                 using (var sr = new StreamWriter("user_data.json"))
@@ -278,7 +278,7 @@ public class TelegramBot
             {
                 await botClient.SendTextMessageAsync(chatId: chatId, text: $"""
             You  will no longer receive Automatons planet info
-            """, replyMarkup: replyKeyboardMarkup, cancellationToken: cancellationToken);
+            """, replyMarkup: settingsMarkup, cancellationToken: cancellationToken);
                 curr_user.automatons = false;
                 all_users.Find(user => user.id == curr_user.id).automatons = false;
                 using (var sr = new StreamWriter("user_data.json"))
@@ -290,7 +290,7 @@ public class TelegramBot
             {
                 await botClient.SendTextMessageAsync(chatId: chatId, text: $"""
             Now, you will receive Automatons planet info
-            """, replyMarkup: replyKeyboardMarkup, cancellationToken: cancellationToken);
+            """, replyMarkup: settingsMarkup, cancellationToken: cancellationToken);
                 curr_user.automatons = true;
                 all_users.Find(user => user.id == curr_user.id).automatons = true;
                 using (var sr = new StreamWriter("user_data.json"))
