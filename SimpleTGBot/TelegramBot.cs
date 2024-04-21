@@ -12,6 +12,7 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -26,6 +27,8 @@ public class TelegramBot
     private const string BotToken = "7109270091:AAEa5Yf-6WKkuwBk8nMEuxT6QcKRf9zNwSA";
     public user curr_user;
     public List<user> all_users;
+    public string[] message_not_match;
+    public string[] quit_settings;
     /// <summary>
     /// Инициализирует и обеспечивает работу бота до нажатия клавиши Esc
     /// </summary>
@@ -84,6 +87,15 @@ public class TelegramBot
             }
             else all_users = JsonSerializer.Deserialize<user[]>(obj).ToList();
         }
+        message_not_match = new string[] {
+            "Ministry of truth is watching you, soldier.",
+            "Welcome to the planet Hoxxes, Miner! \n Wait, wrong chat, forget about it.",
+            "For every minute of unscheduled rest, the opportunity to submit an application for C1-PERM form is postponed for a year",
+            "If you have any information about Karl, contact your Democracy officer.",
+            "Remember: Freedom!",
+            "Don’t drink and drive!"
+
+        };
         // Проверяем что токен верный и получаем информацию о боте
         var me = await botClient.GetMeAsync(cancellationToken: cts.Token);
         Console.WriteLine($"Бот @{me.Username} запущен.\nДля остановки нажмите клавишу Esc...");
@@ -137,6 +149,7 @@ public class TelegramBot
         }
         // Печатаем на консоль факт получения сообщения
         Console.WriteLine($"Получено сообщение в чате {chatId}: '{messageText}'");
+        var hdClient = Helldivers2API.Joel.Instance.SetWarId(801);
         if (message.Text is "/start") 
         { 
             await botClient.SendTextMessageAsync(
@@ -144,9 +157,8 @@ public class TelegramBot
                 text: "Im HellDivers 2 Assistant.\n There you can receive ingame information.\n (updates ~5 minutes)",
                 replyMarkup: replyKeyboardMarkup,
                 cancellationToken: cancellationToken);
-            }
-        var hdClient = Helldivers2API.Joel.Instance.SetWarId(801);
-        if (message.Text is "Statistic")
+        }
+        else if (message.Text is "Statistic")
         {
             await botClient.SendTextMessageAsync(chatId: chatId, text: $"""
                 Missions won: {hdClient.GetWarStats().GalaxyStats.MissionsWon}
@@ -157,7 +169,7 @@ public class TelegramBot
                 ??Illuminaty?? killed: {hdClient.GetWarStats().GalaxyStats.IlluminateKills}
                 """, cancellationToken: cancellationToken);
         }
-        if (message.Text is "Mission")
+        else if (message.Text is "Mission")
         {
             
             var assignments = hdClient.GetAssignments();
@@ -182,7 +194,7 @@ public class TelegramBot
                 """, cancellationToken: cancellationToken);
             }
         }
-        if (message.Text is "Planets")
+        else if (message.Text is "Planets")
         {
             var planets = hdClient.GetCampaignPlanets();
             var factions = hdClient.GetFactions();
@@ -222,7 +234,7 @@ public class TelegramBot
                 }
             }
         }
-        if (message.Text is "Online")
+        else if (message.Text is "Online")
         {
             int players_count = 0;
             foreach (var planet in hdClient.GetPlanets())
@@ -233,19 +245,21 @@ public class TelegramBot
                 Players online: {players_count}
                 """, cancellationToken: cancellationToken);
         }
-        if (message.Text == "Settings")
+        else if (message.Text == "Settings")
         {
             await botClient.SendTextMessageAsync(chatId: chatId, text: $"""
             Its your settings:
+            {(curr_user.bugs? "You receive information about planets with Bugs":"You not receive information about planets with Bugs")}
+            {(curr_user.automatons ? "You receive information about planets with Automatons" : "You not receive information about planets with Automatons")}
             """, replyMarkup: settingsMarkup, cancellationToken: cancellationToken);
         }
-        if (message.Text == "Back")
+        else if (message.Text == "Back")
         {
             await botClient.SendTextMessageAsync(chatId: chatId, text: $"""
-            Don't die, Helldiver!
+            Keep your information updated, soldier!
             """, replyMarkup: replyKeyboardMarkup, cancellationToken: cancellationToken);
         }
-        if (message.Text == "Bugs")
+        else if (message.Text == "Bugs")
         {
             if (curr_user.bugs == true)
             {
@@ -272,7 +286,7 @@ public class TelegramBot
                 }
             }
         }
-        if (message.Text == "Automatons")
+        else if (message.Text == "Automatons")
         {
             if (curr_user.automatons == true)
             {
@@ -299,6 +313,21 @@ public class TelegramBot
                 }
             }
         }
+        else if (Regex.IsMatch(messageText, @"\\b[Ii]{1}lluminat\\w*\\b"))
+        {
+            await botClient.SendTextMessageAsync(chatId: chatId, text: $"""
+            The Illuminati does not exist, we are already in contact with your democracy officer
+            please remain where you are.
+            """, replyMarkup: replyKeyboardMarkup, cancellationToken: cancellationToken);
+        }
+        else 
+        {
+            Random rn = new Random();
+            await botClient.SendTextMessageAsync(chatId: chatId, text: message_not_match[rn.Next(0, message_not_match.Length)]
+            , replyMarkup: replyKeyboardMarkup,
+            cancellationToken: cancellationToken);
+        }
+        
         //await botClient.SendTextMessageAsync(chatId: chatId, text: $"""
         //""", cancellationToken: cancellationToken);
     }
